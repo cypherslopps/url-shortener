@@ -9,6 +9,7 @@ import {
 } from "./services/url.service";
 import { connectToDB } from "./configs/mongodb-client";
 import { MongoError } from "./interface";
+import { getClient, closeRedis } from "./configs/redis.config";
 
 dotenv.config();
 
@@ -71,6 +72,13 @@ app.get("/:shortId", async (req, res) => {
 });
 
 app.listen(port, async () => {
-  await connectToDB();
-  console.log(`Connected successfully on port ${port}`);
+  try {
+    await connectToDB();
+    await getClient();
+    console.log(`Connected successfully on port ${port}`);
+  } catch (err) {
+    console.error("Failed to start server:", err);
+    await closeRedis().catch(() => {});
+    process.exit(1);
+  }
 });

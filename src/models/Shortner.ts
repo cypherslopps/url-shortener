@@ -1,4 +1,8 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { HydratedDocument, InferSchemaType, Schema } from "mongoose";
+
+export type UrlPlain = InferSchemaType<typeof urlShortnerSchema>;
+export type UrlDocument = HydratedDocument<UrlPlain>;
+export type UrlModel = mongoose.Model<UrlDocument>;
 
 const urlShortnerSchema = new Schema({
   shortUrlId: {
@@ -11,7 +15,12 @@ const urlShortnerSchema = new Schema({
     type: String,
     unique: true,
     required: true,
-  },s
+  },
+
+  clicks: {
+    type: Number,
+    default: 0,
+  },
 
   createdAt: {
     type: Date,
@@ -20,6 +29,6 @@ const urlShortnerSchema = new Schema({
   },
 });
 
-export const Url = mongoose.model("Url", urlShortnerSchema);
+export const Url = mongoose.model<UrlDocument>("Url", urlShortnerSchema);
 
 export default Url;
