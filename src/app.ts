@@ -3,9 +3,12 @@ import dotenv from "dotenv";
 import validUrl from "valid-url";
 
 import config from "./configs";
+import {
+  createShortUrlService,
+  getLongUrlService,
+} from "./services/url.service";
 import { connectToDB } from "./configs/mongodb-client";
-import { generateId } from "./utils";
-import Url from "./models/Shortner";
+import { MongoError } from "./interface";
 
 dotenv.config();
 
@@ -15,32 +18,56 @@ app.use(express.json());
 
 // Shorten URL endpointshortener
 app.post("/shorten", async (req, res) => {
-  const { url } = req.body;
-
-  // Check if url exists
-  if (!url) res.status(400).json({ message: "URL does not exist" });
-
-  // Validate url
-  if (!validUrl.isHttpsUri(url))
-    res.status(406).json({ message: "Invalid URL" });
-
   try {
-    // Store URL + LongURL to DB
-    await Url.create({ longUrl: url });
+    const { url } = req.body;
 
-    res.json({
-      shortUrl: "http://localhost:port}/shortId}",
-      longUrl: "",
-      createdAt: "",
+    // Check if url exists
+    if (!url) res.status(400).json({ error: "LongUrl is required" });
+
+    // Validate url
+    if (!validUrl.isHttpsUri(url))
+      res.status(406).json({ error: "Invalid URL" });
+
+    const doc = await createShortUrlService(url);
+
+    res.status(201).json({
+      shortUrl: `http://localhost:${port}/${doc.shortUrlId}`,
+      longUrl: doc.longUrl,
+      createdAt: doc.createdAt.toISOString(),
     });
-  } catch (err) {}
+  } catch (err) {
+    const mongoErr = err as MongoError;
+    const message = mongoErr?.message;
+
+    if (message.includes("dup")) {
+      res
+        .status(500)
+        .json({ error: "DUPLICATE_LONG_URL: Long URL already exists" });
+    }
+
+    res.status(500).json({ error: "An error occured" });
+  }
 });
 
 // Expand URL endpoint
-app.get("/:shortId", () => {});
+app.get("/:shortId", async (req, res) => {
+  try {
+    const { shortId } = req.params;
 
-app.get("/", (req, res) => {
-  res.send("Hello World");
+    if (!shortId) res.status(400).json({ error: "ShortId is required" });
+
+    const doc = await getLongUrlService(shortId);
+
+    if (!doc) res.status(404).send("Not found");
+
+    res.redirect(doc?.longUrl as string);
+  } catch (err) {
+    const mongoErr = err as MongoError;
+    const message = mongoErr?.message;
+    console.error(err);
+
+    res.status(500).json({ error: message });
+  }
 });
 
 app.listen(port, async () => {

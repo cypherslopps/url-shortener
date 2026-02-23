@@ -1,19 +1,17 @@
 import mongoose, { Schema } from "mongoose";
-import { generateId } from "../utils";
 
 const urlShortnerSchema = new Schema({
   shortUrlId: {
     type: String,
     unique: true,
     index: true,
-    default: () => generateId(7),
   },
 
   longUrl: {
     type: String,
     unique: true,
     required: true,
-  },
+  },s
 
   createdAt: {
     type: Date,
