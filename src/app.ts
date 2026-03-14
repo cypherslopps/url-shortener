@@ -62,18 +62,22 @@ app.get("/:shortId", async (req, res) => {
 
     const doc = await getLongUrlService(shortId);
 
-    if (!doc) res.status(404).send("Not found");
+    if (!doc) {
+      res.status(404).send("Not found");
+      return;
+    }
 
     res.redirect(doc?.longUrl as string);
 
     // Queue Analytics job
     await analyticsQueue.add("track-click", {
       shortCode: shortId,
-      originalUrl: doc?.longUrl as string,
+      originalUrl: doc.longUrl,
       timestamp: Date.now(),
       ip: req.ip || "unknown",
       userAgent: req.headers["user-agent"] || "unknown",
     });
+    return;
   } catch (err) {
     const mongoErr = err as MongoError;
     const message = mongoErr?.message;

@@ -5,12 +5,12 @@ import { redisClient } from "../configs/redis.config";
 const analyticsWorker = new Worker<ClickJobData>(
   "analytics_queue",
   async (job) => {
-    const { shortCode, originalUrl, timestamp, ip, userAgent } = job.data;
-    console.log(
-      `Processing analytics for ${shortCode} - ${originalUrl} at ${new Date(
-        timestamp
-      ).toISOString()} from IP: ${ip}, User Agent: ${userAgent}`
-    );
+    const { shortCode, originalUrl, timestamp } = job.data;
+    console.debug("Processing analytics", {
+      shortCode,
+      originalUrl,
+      timestamp: new Date(timestamp).toISOString(),
+    });
     // Here you would typically save this data to a database for later analysis
   },
   {
