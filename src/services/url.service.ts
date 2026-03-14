@@ -45,7 +45,6 @@ export async function getLongUrlService(
     await incrCache(clicksKey);
 
     const clicks = parseInt((await getCache(clicksKey)) || "0", 10);
-    console.log(clicks);
 
     if (clicks > 1000) {
       await prxpireCache(shortUrlId, 30 * 24 * 60 * 60 * 1000);

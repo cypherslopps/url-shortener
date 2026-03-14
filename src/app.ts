@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import validUrl from "valid-url";
+// import { EventEmitter } from "node:events";
 
 import config from "./configs";
 import {
@@ -10,6 +11,8 @@ import {
 import { connectToDB } from "./configs/mongodb-client";
 import { MongoError } from "./interface";
 import { getClient, closeRedis } from "./configs/redis.config";
+import { analyticsQueue } from "./queues/analytics.queue";
+import "./workers/analytics.worker";
 
 dotenv.config();
 
@@ -62,6 +65,15 @@ app.get("/:shortId", async (req, res) => {
     if (!doc) res.status(404).send("Not found");
 
     res.redirect(doc?.longUrl as string);
+
+    // Queue Analytics job
+    await analyticsQueue.add("track-click", {
+      shortCode: shortId,
+      originalUrl: doc?.longUrl as string,
+      timestamp: Date.now(),
+      ip: req.ip || "unknown",
+      userAgent: req.headers["user-agent"] || "unknown",
+    });
   } catch (err) {
     const mongoErr = err as MongoError;
     const message = mongoErr?.message;
@@ -71,8 +83,14 @@ app.get("/:shortId", async (req, res) => {
   }
 });
 
+// const eventEmitter = new EventEmitter();
+// eventEmitter.on("start", (number: number) => {
+//   console.log(`Received start event with number: ${number}`);
+// });
+
 app.listen(port, async () => {
   try {
+    // eventEmitter.emit("start", 42);
     await connectToDB();
     await getClient();
     console.log(`Connected successfully on port ${port}`);
